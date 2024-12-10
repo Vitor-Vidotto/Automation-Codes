@@ -1,11 +1,26 @@
 import pyautogui
 import time
 import os
+import json
 
-# Caminho da pasta onde os arquivos DWG estão localizados
-diretorio_pasta = r"C:\Users\vitor\Desktop\Nova pasta (5)"
-# Diretorio onde os arquivos serão salvos
-diretorio_salvar = r"C:\Users\vitor\Desktop\salvar"
+# Função para carregar os diretórios a partir de um arquivo JSON
+def carregar_directorios():
+    # Caminho do arquivo JSON onde os diretórios são armazenados
+    caminho_json = 'directories.json'
+    
+    # Verificar se o arquivo existe
+    if not os.path.exists(caminho_json):
+        print(f"O arquivo {caminho_json} não foi encontrado.")
+        exit()
+    
+    # Carregar os dados do arquivo JSON
+    with open(caminho_json, 'r') as f:
+        dados = json.load(f)
+        
+    return dados['diretorio_pasta'], dados['diretorio_salvar']
+
+# Carregar os diretórios
+diretorio_pasta, diretorio_salvar = carregar_directorios()
 
 # Função para processar cada arquivo DWG
 def processar_arquivo(nome_arquivo_dwg):
