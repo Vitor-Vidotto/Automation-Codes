@@ -6,7 +6,7 @@ import json
 # Função para carregar os diretórios a partir de um arquivo JSON
 def carregar_directorios():
     # Caminho do arquivo JSON onde os diretórios são armazenados
-    caminho_json = 'directories.json'
+    caminho_json = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'directories.json')
     
     # Verificar se o arquivo existe
     if not os.path.exists(caminho_json):
@@ -21,6 +21,7 @@ def carregar_directorios():
 
 # Carregar os diretórios
 diretorio_pasta, diretorio_salvar = carregar_directorios()
+
 
 # Função para processar cada arquivo DWG
 def processar_arquivo(nome_arquivo_dwg):
@@ -47,6 +48,7 @@ def processar_arquivo(nome_arquivo_dwg):
     time.sleep(2)  # Aguarda o arquivo abrir
 
     # Passo 5: Realizar as ações necessárias no arquivo DWG
+    time.sleep(1)
     pyautogui.click(x=1255, y=780)  # Clica em um ponto específico
     time.sleep(3)
     pyautogui.press('enter')
@@ -67,7 +69,9 @@ def processar_arquivo(nome_arquivo_dwg):
     time.sleep(2)
 
     # Passo 7: Fechar o arquivo e a janela
+    time.sleep(1)
     pyautogui.hotkey('alt', 'f4')
+    time.sleep(1)
     pyautogui.hotkey('alt', 'f4')
 
     print(f"Arquivo {nome_arquivo_dwg} processado e salvo como {nome_arquivo_dwg}.txt")
