@@ -17,7 +17,7 @@ def registrar_log(texto):
 def esperar_ate_17h():
     while True:
         agora = datetime.datetime.now()
-        if agora.hour == 14 and agora.minute == 3:
+        if agora.hour == 17 and agora.minute == 00:
             break
         time.sleep(1)
 
