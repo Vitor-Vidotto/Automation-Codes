@@ -6,6 +6,7 @@ import pytesseract
 import cv2
 import numpy as np
 import difflib
+import re
 from PIL import Image, ImageGrab
 
 # pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"  # Windows
@@ -39,48 +40,137 @@ def extrair_textos_da_imagem(caminho_imagem):
 def preprocessar_screenshot(image):
     img_np = np.array(image)
     img_gray = cv2.cvtColor(img_np, cv2.COLOR_BGR2GRAY)
-    img_bin = cv2.adaptiveThreshold(img_gray, 255,
-                                    cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
-                                    cv2.THRESH_BINARY_INV, 11, 3)
-    return Image.fromarray(img_bin)
+    
+    # Limiar adaptativo para destacar texto escuro
+    img_bin = cv2.adaptiveThreshold(
+        img_gray, 255,
+        cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
+        cv2.THRESH_BINARY_INV,
+        15, 5
+    )
+    
+    img_denoised = cv2.fastNlMeansDenoising(img_bin, h=15)
+    
+    return Image.fromarray(img_denoised)
+
+def limpar_texto_ocr(texto):
+    texto = texto.upper()
+
+    # Remove prefixos indesejados, mas preserva 'FG'
+    prefixos_indesejados = ['GM', 'BE ANS', 'GAP', 'KEYBOARDINTERRUPT', 'MIG', 'O GENE', 'IG SCORE SCORE', 'MIG 8']
+    for p in prefixos_indesejados:
+        if texto.startswith(p + ' '):
+            texto = texto[len(p)+1:]
+            break
+
+    texto = texto.replace('¥', '-')
+    texto = texto.replace('~', '-')
+    texto = texto.replace('TIH00', '11H00')
+    texto = texto.replace('HOO', 'H00')
+    texto = texto.replace('HS59', 'H59')
+    texto = texto.replace('HO0', 'H00')
+    texto = texto.replace('—', '-')
+
+    texto = re.sub(r'H[O0]{2}', 'H00', texto)
+    texto = re.sub(r'[^A-Z0-9\s\-\:]', '', texto)
+    texto = re.sub(r'\s+', ' ', texto).strip()
+
+    return texto
+
+def extrair_horarios(texto):
+    padrao = re.compile(r'(\d{1,2}H\d{2})|(\d{1,2}:\d{2})')
+    matches = padrao.findall(texto.upper())
+    horarios = []
+    for h1, h2 in matches:
+        horarios.append(h1 if h1 else h2)
+    return horarios
+
+def horarios_batem(horarios_esperados, horarios_encontrados):
+    def normalizar(h):
+        return h.replace('H', ':')
+    
+    horarios_encontrados_norm = [normalizar(h) for h in horarios_encontrados]
+
+    for h in horarios_esperados:
+        h_norm = normalizar(h)
+        if not any(
+            abs(int(h_norm.split(':')[0]) - int(h2.split(':')[0])) <= 1 and
+            abs(int(h_norm.split(':')[1]) - int(h2.split(':')[1])) <= 5
+            for h2 in horarios_encontrados_norm
+        ):
+            return False
+    return True
 
 def clicar_por_texto_na_tela(texto_procurado, posicoes_ja_clicadas):
     screenshot = ImageGrab.grab()
-    screenshot.save("debug_screenshot_original.png")
-
     imagem_processada = preprocessar_screenshot(screenshot)
-    imagem_processada.save("debug_tela_processada.png")
-    # imagem_processada.show()  # Opcional
+    
+    dados = pytesseract.image_to_data(
+        imagem_processada,
+        config='--psm 6',
+        output_type=pytesseract.Output.DICT
+    )
 
-    dados = pytesseract.image_to_data(imagem_processada, output_type=pytesseract.Output.DICT)
+    linhas_detectadas = {}
+    for i in range(len(dados['text'])):
+        if int(dados['conf'][i]) < 30:
+            continue
+        linha_num = dados['line_num'][i]
+        texto = dados['text'][i].strip()
+        if not texto:
+            continue
+        if linha_num not in linhas_detectadas:
+            linhas_detectadas[linha_num] = {
+                'textos': [],
+                'x_total': 0,
+                'y_total': 0,
+                'itens': 0
+            }
+        linhas_detectadas[linha_num]['textos'].append(texto)
+        linhas_detectadas[linha_num]['x_total'] += dados['left'][i] + dados['width'][i] // 2
+        linhas_detectadas[linha_num]['y_total'] += dados['top'][i] + dados['height'][i] // 2
+        linhas_detectadas[linha_num]['itens'] += 1
 
-    melhor_match = None
+    texto_procurado_limpo = limpar_texto_ocr(texto_procurado)
+    horarios_esperados = extrair_horarios(texto_procurado_limpo)
+
     melhor_score = 0
+    melhor_match = None
     posicao_match = None
 
-    for i in range(len(dados['text'])):
-        texto_detectado = dados['text'][i].strip()
-        if not texto_detectado:
+    for linha in linhas_detectadas.values():
+        linha_texto = " ".join(linha['textos'])
+        linha_texto = limpar_texto_ocr(linha_texto)
+
+        score = difflib.SequenceMatcher(None, texto_procurado_limpo.lower(), linha_texto.lower()).ratio()
+
+        horarios_encontrados = extrair_horarios(linha_texto)
+        batem_horarios = horarios_batem(horarios_esperados, horarios_encontrados)
+
+        if texto_procurado_limpo.lower() not in linha_texto.lower():
+            if batem_horarios:
+                if score < 0.55:
+                    continue
+            else:
+                if score < 0.85:
+                    continue
+        else:
+            if score < 0.85:
+                continue
+        
+        if not batem_horarios:
             continue
 
-        score = difflib.SequenceMatcher(None, texto_procurado.lower(), texto_detectado.lower()).ratio()
+        x = linha['x_total'] // linha['itens']
+        y = linha['y_total'] // linha['itens']
 
-        # Só aceita se o texto detectado contém o texto procurado ou for muito parecido
-        if texto_procurado.lower() not in texto_detectado.lower() and score < 0.35:
-            continue
-
-        x = dados['left'][i] + dados['width'][i] // 2
-        y = dados['top'][i] + dados['height'][i] // 2
-
-        # Evita clicar em posições muito próximas
         for (px, py) in posicoes_ja_clicadas:
             if abs(px - x) < 40 and abs(py - y) < 20:
-                print("🔁 Clique ignorado: posição muito próxima de clique anterior.")
                 break
         else:
             if score > melhor_score:
                 melhor_score = score
-                melhor_match = texto_detectado
+                melhor_match = linha_texto
                 posicao_match = (x, y)
 
     if posicao_match:
@@ -88,6 +178,7 @@ def clicar_por_texto_na_tela(texto_procurado, posicoes_ja_clicadas):
         posicoes_ja_clicadas.append(posicao_match)
         registrar_log(f"✔ Clique no texto: '{melhor_match}' ≈ '{texto_procurado}' em {posicao_match} (score={melhor_score:.2f})")
         print(f"✔ Clique no texto: '{melhor_match}' ≈ '{texto_procurado}' em {posicao_match}")
+        time.sleep(1)
         return True
     else:
         registrar_log(f"❌ Nenhum texto correspondente a '{texto_procurado}' encontrado.")
@@ -114,10 +205,8 @@ while True:
 registrar_log(f"Restaurante selecionado: {termo_de_busca}")
 print(f"Restaurante escolhido: {termo_de_busca}")
 
-# Lista de posições já clicadas para evitar repetição
 posicoes_ja_clicadas = []
 
-# Sequência de cliques por OCR
 print("Iniciando sequência de cliques por OCR em texto das imagens...")
 registrar_log("Iniciando sequência de cliques por OCR em texto das imagens...")
 
@@ -134,7 +223,7 @@ for indice in range(1, max_cliques + 1):
             registrar_log(f"Procurando texto extraído: '{linha}'")
 
             sucesso = clicar_por_texto_na_tela(linha, posicoes_ja_clicadas)
-            time.sleep(1.5)
+            time.sleep(0.5)
             if sucesso:
                 break
     else:
@@ -150,7 +239,7 @@ for nome in ["verificar", "concluido"]:
             pyautogui.click(pos)
             registrar_log(f"Clique na imagem: {nome}.png")
             print(f"Clique realizado em '{nome}.png'")
-            time.sleep(2)
+            time.sleep(0.5)
         else:
             print(f"Imagem '{nome}.png' não encontrada.")
             registrar_log(f"Imagem '{nome}.png' não encontrada.")
