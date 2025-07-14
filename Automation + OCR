@@ -216,6 +216,79 @@ while True:
 registrar_log(f"Restaurante selecionado: {termo_de_busca}")
 print(f"Restaurante escolhido: {termo_de_busca}")
 
+print("Esperando dar 17h...")
+
+
+registrar_log("Aguardando 17h...")
+
+
+esperar_ate_horario(17, 00)
+
+print("É 17h! Executando ações...")
+
+registrar_log("Executando ações às 17h.")
+
+
+
+
+# Automação de busca (Ctrl+F)
+
+pyautogui.press('f5')
+
+registrar_log("Pressionado F5")
+
+
+time.sleep(2)
+
+
+
+
+pyautogui.hotkey('ctrl', 'f')
+
+registrar_log("Pressionado Ctrl+F")
+
+time.sleep(0.8)
+
+
+
+
+
+pyautogui.write(termo_de_busca, interval=0.05)
+
+registrar_log(f"Termo digitado: {termo_de_busca}")
+
+time.sleep(0.5)
+
+
+
+
+pyautogui.press('enter')
+
+registrar_log("Pressionado Enter")
+
+
+time.sleep(0.3)
+
+
+
+
+
+# Apenas apaga o conteúdo da barra de busca (mantém aberta)
+
+
+pyautogui.hotkey('ctrl', 'a')  # Seleciona tudo
+
+
+time.sleep(0.1)
+
+
+pyautogui.press('backspace')   # Apaga o texto
+
+
+registrar_log("Texto da barra de busca apagado")
+
+
+
 posicoes_ja_clicadas = []
 
 print("Iniciando sequência de cliques por OCR em texto das imagens...")
