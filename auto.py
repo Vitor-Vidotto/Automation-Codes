@@ -40,65 +40,95 @@ while True:
 registrar_log(f"Restaurante selecionado: {termo_de_busca}")
 print(f"Restaurante escolhido: {termo_de_busca}")
 
+# Espera até as 17h
+print("Esperando dar 17h...")
+registrar_log("Aguardando 17h...")
+esperar_ate_horario(17, 00)
+print("É 17h! Executando ações...")
+registrar_log("Executando ações às 17h.")
 
-# Procurar imagem na tela
-print("Procurando o item na tela por imagem...")
-registrar_log("Procurando imagem do item na tela...")
+# Automação de busca (Ctrl+F)
+pyautogui.press('f5')
+registrar_log("Pressionado F5")
+time.sleep(2)
 
-# Executar sequência de cliques por imagem
-print("Iniciando sequência de cliques por imagem...")
-registrar_log("Iniciando sequência de cliques por imagem...")
+pyautogui.hotkey('ctrl', 'f')
+registrar_log("Pressionado Ctrl+F")
+time.sleep(0.8)
 
-prefixo_imagem = termo_de_busca.lower()
-max_cliques = 10  # Defina o máximo de tentativas de clique sequencial
+pyautogui.write(termo_de_busca, interval=0.05)
+registrar_log(f"Termo digitado: {termo_de_busca}")
+time.sleep(0.5)
 
-for indice_clique in range(1, max_cliques + 1):
-    imagem_clique = f"{prefixo_imagem}_click{indice_clique}.png"
+pyautogui.press('enter')
+registrar_log("Pressionado Enter")
+time.sleep(0.3)
+# Apenas apaga o conteúdo da barra de busca (mantém aberta)
+
+
+pyautogui.hotkey('ctrl', 'a')  # Seleciona tudo
+
+time.sleep(0.1)
+
+pyautogui.press('backspace')   # Apaga o texto
+
+registrar_log("Texto da barra de busca apagado")
+
+
+# Mapeamento de cliques por opção
+cliques_por_opcao = {
+    "1": [
+        (978, 498),
+        (988, 588),
+        (992, 673),
+        (990, 763),
+        (989, 843),
+        (983, 934),
+        (992, 1011),
+    ],
+    "2": [
+        (967, 464),
+        (957, 545),
+        (960, 625),
+        (953, 713),
+        (946, 790),
+    ],
+    "3": [
+        (989, 486),
+        (986, 569),
+    ]
+}
+
+# Determinar opção com base no termo de busca
+opcao = str(opcoes.index(termo_de_busca) + 1)
+cliques = cliques_por_opcao.get(opcao, [])
+
+print(f"Iniciando sequência de cliques da opção {opcao}...")
+registrar_log(f"Iniciando sequência de cliques da opção {opcao}...")
+
+for i, (x, y) in enumerate(cliques, 1):
+    pyautogui.moveTo(x, y, duration=0.3)
+    pyautogui.click()
+    registrar_log(f"Clique {i} em coordenada: ({x}, {y})")
+    print(f"✔ Clique {i} realizado em ({x}, {y})")
+    time.sleep(1.5)
+
+pyautogui.press(['down', 'down', 'down'])
+time.sleep(1.5)  # Espera a tela carregar
+
+for nome in ["verificar", "concluido"]:
     try:
-        posicao = pyautogui.locateCenterOnScreen(imagem_clique, confidence=0.8)
-        if posicao:
-            pyautogui.click(posicao)
-            registrar_log(f"Clique na imagem: {imagem_clique} em {posicao}")
-            print(f"Clique {indice_clique} realizado na posição: {posicao}")
-            time.sleep(1.5)
+        print(f"Procurando '{nome}.png'...")
+        pyautogui.screenshot(f"debug_{nome}.png")  # Captura da tela para depuração
+        pos = pyautogui.locateCenterOnScreen(f"{nome}.png", confidence=0.8)
+        if pos:
+            pyautogui.click(pos)
+            registrar_log(f"Clique na imagem: {nome}.png")
+            print(f"✔ Clique realizado em '{nome}.png'")
+            time.sleep(0.5)
         else:
-            print(f"Imagem {imagem_clique} não encontrada. Pulando para o próximo.")
-            registrar_log(f"Imagem {imagem_clique} não encontrada. Pulando.")
-            continue
+            print(f"❌ Imagem '{nome}.png' não encontrada.")
+            registrar_log(f"Imagem '{nome}.png' não encontrada.")
     except Exception as e:
-        print(f"Erro ao buscar imagem {imagem_clique}: {e}")
-        registrar_log(f"Erro ao buscar imagem {imagem_clique}: {e}")
-
-# Clique em verificar
-try:
-    print("Procurando 'verificar.png'...")
-    verificar = pyautogui.locateCenterOnScreen("verificar.png", confidence=0.8)
-    if verificar:
-        pyautogui.click(verificar)
-        registrar_log("Clique na imagem: verificar.png")
-        print("Clique realizado em 'verificar.png'")
-        time.sleep(2)
-    else:
-        print("Imagem 'verificar.png' não encontrada.")
-        registrar_log("Imagem 'verificar.png' não encontrada.")
-except Exception as e:
-    print(f"Erro ao buscar imagem verificar.png: {e}")
-    registrar_log(f"Erro ao buscar imagem verificar.png: {e}")
-
-# Clique em concluído
-try:
-    print("Procurando 'concluido.png'...")
-    concluido = pyautogui.locateCenterOnScreen("concluido.png", confidence=0.8)
-    if concluido:
-        pyautogui.click(concluido)
-        registrar_log("Clique na imagem: concluido.png")
-        print("Clique realizado em 'concluido.png'")
-    else:
-        print("Imagem 'concluido.png' não encontrada.")
-        registrar_log("Imagem 'concluido.png' não encontrada.")
-except Exception as e:
-    print(f"Erro ao buscar imagem concluido.png: {e}")
-    registrar_log(f"Erro ao buscar imagem concluido.png: {e}")
-
-print("Ações finalizadas.")
-registrar_log("Todos os cliques realizados.")
+        print(f"Erro ao buscar imagem {nome}.png: {e}")
+        registrar_log(f"Erro ao buscar imagem {nome}.png: {e}")
