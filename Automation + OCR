@@ -1,0 +1,162 @@
+import pyautogui
+import datetime
+import time
+import os
+import pytesseract
+import cv2
+import numpy as np
+import difflib
+from PIL import Image, ImageGrab
+
+# pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"  # Windows
+
+# Caminho da área de trabalho
+desktop = os.path.join(os.path.expanduser("~"), "Desktop")
+log_path = os.path.join(desktop, "log_cliques.txt")
+
+def registrar_log(texto):
+    with open(log_path, "a", encoding="utf-8") as f:
+        f.write(f"[{datetime.datetime.now().strftime('%H:%M:%S')}] {texto}\n")
+
+def esperar_ate_horario(hora, minuto):
+    while True:
+        agora = datetime.datetime.now()
+        if agora.hour == hora and agora.minute == minuto:
+            break
+        time.sleep(1)
+
+def extrair_textos_da_imagem(caminho_imagem):
+    try:
+        imagem = Image.open(caminho_imagem)
+        texto = pytesseract.image_to_string(imagem)
+        linhas = [linha.strip() for linha in texto.split('\n') if linha.strip()]
+        return linhas
+    except Exception as e:
+        print(f"Erro ao extrair texto de {caminho_imagem}: {e}")
+        registrar_log(f"Erro ao extrair texto de {caminho_imagem}: {e}")
+        return []
+
+def preprocessar_screenshot(image):
+    img_np = np.array(image)
+    img_gray = cv2.cvtColor(img_np, cv2.COLOR_BGR2GRAY)
+    img_bin = cv2.adaptiveThreshold(img_gray, 255,
+                                    cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
+                                    cv2.THRESH_BINARY_INV, 11, 3)
+    return Image.fromarray(img_bin)
+
+def clicar_por_texto_na_tela(texto_procurado, posicoes_ja_clicadas):
+    screenshot = ImageGrab.grab()
+    screenshot.save("debug_screenshot_original.png")
+
+    imagem_processada = preprocessar_screenshot(screenshot)
+    imagem_processada.save("debug_tela_processada.png")
+    # imagem_processada.show()  # Opcional
+
+    dados = pytesseract.image_to_data(imagem_processada, output_type=pytesseract.Output.DICT)
+
+    melhor_match = None
+    melhor_score = 0
+    posicao_match = None
+
+    for i in range(len(dados['text'])):
+        texto_detectado = dados['text'][i].strip()
+        if not texto_detectado:
+            continue
+
+        score = difflib.SequenceMatcher(None, texto_procurado.lower(), texto_detectado.lower()).ratio()
+
+        # Só aceita se o texto detectado contém o texto procurado ou for muito parecido
+        if texto_procurado.lower() not in texto_detectado.lower() and score < 0.35:
+            continue
+
+        x = dados['left'][i] + dados['width'][i] // 2
+        y = dados['top'][i] + dados['height'][i] // 2
+
+        # Evita clicar em posições muito próximas
+        for (px, py) in posicoes_ja_clicadas:
+            if abs(px - x) < 40 and abs(py - y) < 20:
+                print("🔁 Clique ignorado: posição muito próxima de clique anterior.")
+                break
+        else:
+            if score > melhor_score:
+                melhor_score = score
+                melhor_match = texto_detectado
+                posicao_match = (x, y)
+
+    if posicao_match:
+        pyautogui.click(posicao_match)
+        posicoes_ja_clicadas.append(posicao_match)
+        registrar_log(f"✔ Clique no texto: '{melhor_match}' ≈ '{texto_procurado}' em {posicao_match} (score={melhor_score:.2f})")
+        print(f"✔ Clique no texto: '{melhor_match}' ≈ '{texto_procurado}' em {posicao_match}")
+        return True
+    else:
+        registrar_log(f"❌ Nenhum texto correspondente a '{texto_procurado}' encontrado.")
+        print(f"❌ Nenhum texto correspondente a '{texto_procurado}' encontrado.")
+        return False
+
+# Seletor de restaurante
+opcoes = ['Fuji', 'Zendai', 'Columbia']
+print("Selecione o restaurante para pesquisa:")
+for i, nome in enumerate(opcoes, 1):
+    print(f"{i}. {nome}")
+
+while True:
+    try:
+        escolha = int(input("Digite o número correspondente: "))
+        if 1 <= escolha <= len(opcoes):
+            termo_de_busca = opcoes[escolha - 1]
+            break
+        else:
+            print("Escolha inválida. Tente novamente.")
+    except ValueError:
+        print("Entrada inválida. Digite um número.")
+
+registrar_log(f"Restaurante selecionado: {termo_de_busca}")
+print(f"Restaurante escolhido: {termo_de_busca}")
+
+# Lista de posições já clicadas para evitar repetição
+posicoes_ja_clicadas = []
+
+# Sequência de cliques por OCR
+print("Iniciando sequência de cliques por OCR em texto das imagens...")
+registrar_log("Iniciando sequência de cliques por OCR em texto das imagens...")
+
+prefixo_imagem = termo_de_busca.lower()
+max_cliques = 10
+
+for indice in range(1, max_cliques + 1):
+    caminho_imagem = f"{prefixo_imagem}_click{indice}.png"
+    linhas_texto = extrair_textos_da_imagem(caminho_imagem)
+
+    if linhas_texto:
+        for linha in linhas_texto:
+            print(f"Procurando texto extraído: '{linha}'")
+            registrar_log(f"Procurando texto extraído: '{linha}'")
+
+            sucesso = clicar_por_texto_na_tela(linha, posicoes_ja_clicadas)
+            time.sleep(1.5)
+            if sucesso:
+                break
+    else:
+        print(f"Não foi possível extrair texto de {caminho_imagem}")
+        registrar_log(f"Não foi possível extrair texto de {caminho_imagem}")
+
+# Parte final: clicar por imagem (verificar/concluido)
+for nome in ["verificar", "concluido"]:
+    try:
+        print(f"Procurando '{nome}.png'...")
+        pos = pyautogui.locateCenterOnScreen(f"{nome}.png", confidence=0.8)
+        if pos:
+            pyautogui.click(pos)
+            registrar_log(f"Clique na imagem: {nome}.png")
+            print(f"Clique realizado em '{nome}.png'")
+            time.sleep(2)
+        else:
+            print(f"Imagem '{nome}.png' não encontrada.")
+            registrar_log(f"Imagem '{nome}.png' não encontrada.")
+    except Exception as e:
+        print(f"Erro ao buscar imagem {nome}.png: {e}")
+        registrar_log(f"Erro ao buscar imagem {nome}.png: {e}")
+
+print("Ações finalizadas.")
+registrar_log("Todos os cliques realizados.")
