@@ -42,7 +42,7 @@ print(f"Restaurante escolhido: {termo_de_busca}")
 # Espera até o horário definido
 print("Esperando dar 17h...")
 registrar_log("Aguardando 17h...")
-esperar_ate_horario(19, 39)  # Altere para o horário desejado
+esperar_ate_horario(17, 00)  # Altere para o horário desejado
 print("É 17h! Executando ações...")
 registrar_log("Executando ações às 17h.")
 
