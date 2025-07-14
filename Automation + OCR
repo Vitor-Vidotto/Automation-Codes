@@ -103,8 +103,11 @@ def horarios_batem(horarios_esperados, horarios_encontrados):
 
 def clicar_por_texto_na_tela(texto_procurado, posicoes_ja_clicadas):
     screenshot = ImageGrab.grab()
+    screenshot.save("debug_screenshot_original.png")
+
     imagem_processada = preprocessar_screenshot(screenshot)
-    
+    imagem_processada.save("debug_tela_processada.png")
+
     dados = pytesseract.image_to_data(
         imagem_processada,
         config='--psm 6',
@@ -115,24 +118,39 @@ def clicar_por_texto_na_tela(texto_procurado, posicoes_ja_clicadas):
     for i in range(len(dados['text'])):
         if int(dados['conf'][i]) < 30:
             continue
+
         linha_num = dados['line_num'][i]
         texto = dados['text'][i].strip()
         if not texto:
             continue
+
         if linha_num not in linhas_detectadas:
             linhas_detectadas[linha_num] = {
                 'textos': [],
-                'x_total': 0,
-                'y_total': 0,
                 'itens': 0
             }
+
         linhas_detectadas[linha_num]['textos'].append(texto)
-        linhas_detectadas[linha_num]['x_total'] += dados['left'][i] + dados['width'][i] // 2
-        linhas_detectadas[linha_num]['y_total'] += dados['top'][i] + dados['height'][i] // 2
+
+        x = dados['left'][i]
+        y = dados['top'][i]
+        w = dados['width'][i]
+        h = dados['height'][i]
+
+        if 'x_min' not in linhas_detectadas[linha_num]:
+            linhas_detectadas[linha_num]['x_min'] = x
+            linhas_detectadas[linha_num]['x_max'] = x + w
+            linhas_detectadas[linha_num]['y_min'] = y
+            linhas_detectadas[linha_num]['y_max'] = y + h
+        else:
+            linhas_detectadas[linha_num]['x_min'] = min(linhas_detectadas[linha_num]['x_min'], x)
+            linhas_detectadas[linha_num]['x_max'] = max(linhas_detectadas[linha_num]['x_max'], x + w)
+            linhas_detectadas[linha_num]['y_min'] = min(linhas_detectadas[linha_num]['y_min'], y)
+            linhas_detectadas[linha_num]['y_max'] = max(linhas_detectadas[linha_num]['y_max'], y + h)
+
         linhas_detectadas[linha_num]['itens'] += 1
 
     texto_procurado_limpo = limpar_texto_ocr(texto_procurado)
-    horarios_esperados = extrair_horarios(texto_procurado_limpo)
 
     melhor_score = 0
     melhor_match = None
@@ -144,25 +162,18 @@ def clicar_por_texto_na_tela(texto_procurado, posicoes_ja_clicadas):
 
         score = difflib.SequenceMatcher(None, texto_procurado_limpo.lower(), linha_texto.lower()).ratio()
 
-        horarios_encontrados = extrair_horarios(linha_texto)
-        batem_horarios = horarios_batem(horarios_esperados, horarios_encontrados)
-
-        if texto_procurado_limpo.lower() not in linha_texto.lower():
-            if batem_horarios:
-                if score < 0.55:
-                    continue
-            else:
-                if score < 0.85:
-                    continue
-        else:
-            if score < 0.85:
-                continue
-        
-        if not batem_horarios:
+        if texto_procurado_limpo.lower() not in linha_texto.lower() and score < 0.75:
             continue
 
-        x = linha['x_total'] // linha['itens']
-        y = linha['y_total'] // linha['itens']
+        horarios_esperados = extrair_horarios(texto_procurado_limpo)
+        horarios_encontrados = extrair_horarios(linha_texto)
+
+        if not horarios_batem(horarios_esperados, horarios_encontrados):
+            continue
+
+        # Calcula o clique no centro do retângulo da linha detectada
+        x = (linha['x_min'] + linha['x_max']) // 2
+        y = (linha['y_min'] + linha['y_max']) // 2
 
         for (px, py) in posicoes_ja_clicadas:
             if abs(px - x) < 40 and abs(py - y) < 20:
