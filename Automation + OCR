@@ -215,7 +215,7 @@ while True:
 
 registrar_log(f"Restaurante selecionado: {termo_de_busca}")
 print(f"Restaurante escolhido: {termo_de_busca}")
-
+'''
 print("Esperando dar 17h...")
 
 
@@ -272,7 +272,6 @@ time.sleep(0.3)
 
 
 
-
 # Apenas apaga o conteúdo da barra de busca (mantém aberta)
 
 
@@ -286,8 +285,9 @@ pyautogui.press('backspace')   # Apaga o texto
 
 
 registrar_log("Texto da barra de busca apagado")
+'''
 
-
+time.sleep(2)
 
 posicoes_ja_clicadas = []
 
@@ -314,22 +314,20 @@ for indice in range(1, max_cliques + 1):
         print(f"Não foi possível extrair texto de {caminho_imagem}")
         registrar_log(f"Não foi possível extrair texto de {caminho_imagem}")
 
-# Parte final: clicar por imagem (verificar/concluido)
+
 for nome in ["verificar", "concluido"]:
     try:
         print(f"Procurando '{nome}.png'...")
+        pyautogui.screenshot(f"debug_{nome}.png")  # Captura da tela para depuração
         pos = pyautogui.locateCenterOnScreen(f"{nome}.png", confidence=0.8)
         if pos:
             pyautogui.click(pos)
             registrar_log(f"Clique na imagem: {nome}.png")
-            print(f"Clique realizado em '{nome}.png'")
+            print(f"✔ Clique realizado em '{nome}.png'")
             time.sleep(0.5)
         else:
-            print(f"Imagem '{nome}.png' não encontrada.")
+            print(f"❌ Imagem '{nome}.png' não encontrada.")
             registrar_log(f"Imagem '{nome}.png' não encontrada.")
     except Exception as e:
         print(f"Erro ao buscar imagem {nome}.png: {e}")
         registrar_log(f"Erro ao buscar imagem {nome}.png: {e}")
-
-print("Ações finalizadas.")
-registrar_log("Todos os cliques realizados.")
