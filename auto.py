@@ -46,23 +46,22 @@ while True:
 atraso = timedelta(seconds=ajuste_final)
 
 def clicar_na_imagem(nome_arquivo, confidence=0.8):
-    local = pyautogui.locateCenterOnScreen(nome_arquivo, confidence=confidence)
-    if local:
+    try:
+        local = pyautogui.locateCenterOnScreen(nome_arquivo, confidence=confidence)
+        if not local:
+            print(f"❌ Imagem {nome_arquivo} não encontrada na tela.")
+            return
         print(f"Clicando em {nome_arquivo} em {local}")
         pyautogui.click(local)
-        return True
-    else:
-        print(f"{nome_arquivo} não encontrado.")
-        return False
+    except pyautogui.ImageNotFoundException:
+        print(f"❌ Imagem {nome_arquivo} não encontrada (exceção capturada).")
+
+
 # Caminho absoluto mesmo no PyInstaller
 def caminho_absoluto(rel_path):
     if hasattr(sys, '_MEIPASS'):
         return os.path.join(sys._MEIPASS, rel_path)
     return os.path.join(os.path.abspath("."), rel_path)
-
-# Caminho da área de trabalho
-desktop = os.path.join(os.path.expanduser("~"), "Desktop")
-log_path = os.path.join(desktop, "log_cliques.txt")
 
 # Função que espera até horário alvo usando NTP + ajuste
 def esperar_ate_horario(hora, minuto):
@@ -103,16 +102,16 @@ time.sleep(3)
 
 # Executa automação
 pyautogui.press('f5')
-time.sleep(0.5)
+time.sleep(1)
 pyautogui.hotkey('ctrl', 'f')
-time.sleep(0.05)
+time.sleep(0.1)
 pyautogui.write(termo_de_busca, interval=0.05)
 pyautogui.press('enter')
-time.sleep(0.05)
+time.sleep(0.1)
 pyautogui.press("esc")
-time.sleep(0.05)
+time.sleep(0.1)
 pyautogui.press('enter')
-time.sleep(0.05)
+time.sleep(0.1)
 
 # Navegação por cliques
 pyautogui.press("tab")
@@ -136,6 +135,6 @@ for i, tecla in enumerate(cliques, 1):
     pyautogui.press(tecla)
     print(f"✔ Tecla {i} pressionada: {tecla.upper()}")
 
-if clicar_na_imagem(caminho_absoluto("imagens/verificar.png")):
-    time.sleep(1)
-    clicar_na_imagem(caminho_absoluto("imagens/concluido.png"))
+clicar_na_imagem(caminho_absoluto("imagens/verificar.png"))
+time.sleep(1)
+clicar_na_imagem(caminho_absoluto("imagens/confirmar.png"))
