@@ -45,6 +45,15 @@ while True:
 # Aplica ajuste
 atraso = timedelta(seconds=ajuste_final)
 
+def clicar_na_imagem(nome_arquivo, confidence=0.8):
+    local = pyautogui.locateCenterOnScreen(nome_arquivo, confidence=confidence)
+    if local:
+        print(f"Clicando em {nome_arquivo} em {local}")
+        pyautogui.click(local)
+        return True
+    else:
+        print(f"{nome_arquivo} não encontrado.")
+        return False
 # Caminho absoluto mesmo no PyInstaller
 def caminho_absoluto(rel_path):
     if hasattr(sys, '_MEIPASS'):
@@ -96,10 +105,14 @@ time.sleep(3)
 pyautogui.press('f5')
 time.sleep(0.5)
 pyautogui.hotkey('ctrl', 'f')
+time.sleep(0.05)
 pyautogui.write(termo_de_busca, interval=0.05)
 pyautogui.press('enter')
+time.sleep(0.05)
 pyautogui.press("esc")
+time.sleep(0.05)
 pyautogui.press('enter')
+time.sleep(0.05)
 
 # Navegação por cliques
 pyautogui.press("tab")
@@ -109,10 +122,10 @@ pyautogui.press("tab")
 pyautogui.press("tab")
 
 cliques_por_opcao = {
-    "1": ["tab", "space", "tab", "tab", "space", "tab", "tab", "space"],
+    "1": ["tab", "space", "tab", "tab", "space", "tab", "tab", "space","down","down","down"],
     "2": ["tab", "tab", "space", "tab"],
-    "3": ["tab", "space", "tab", "space"],
-    "4": ["tab", "space", "tab", "space", "tab", "space"]
+    "3": ["tab", "space", "tab", "space","down"],
+    "4": ["tab", "space", "tab", "space", "tab", "space","down","down"]
 }
 
 opcao = str(opcoes.index(termo_de_busca) + 1)
@@ -123,14 +136,6 @@ for i, tecla in enumerate(cliques, 1):
     pyautogui.press(tecla)
     print(f"✔ Tecla {i} pressionada: {tecla.upper()}")
 
-pyautogui.hotkey('ctrl', 'f')
-pyautogui.write("Marque", interval=0.05)
-pyautogui.press('enter')
-pyautogui.press("esc")
-pyautogui.press('enter')
-
-pyautogui.hotkey('ctrl', 'f')
-pyautogui.write("Solicitar", interval=0.05)
-pyautogui.press('enter')
-pyautogui.press("esc")
-pyautogui.press('enter')
+if clicar_na_imagem(caminho_absoluto("imagens/verificar.png")):
+    time.sleep(1)
+    clicar_na_imagem(caminho_absoluto("imagens/concluido.png"))
