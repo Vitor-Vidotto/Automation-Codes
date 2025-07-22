@@ -3,8 +3,49 @@ import datetime
 import time
 import os
 import sys
+import threading
+import ntplib
+from datetime import timezone, timedelta
 
-# Função para obter caminho absoluto mesmo em .exe do PyInstaller
+# Função para obter horário de Brasília via NTP
+def get_ntp_brasilia():
+    try:
+        cliente = ntplib.NTPClient()
+        resposta = cliente.request('a.st1.ntp.br')  # Servidor brasileiro
+        utc = datetime.datetime.fromtimestamp(resposta.tx_time, timezone.utc)
+        brasilia = utc - timedelta(hours=3)
+        return brasilia
+    except:
+        print("❌ Erro ao sincronizar com o NTP. Usando horário local.")
+        return datetime.datetime.now()  # fallback
+
+ajuste_final = None  # será definido pelo usuário
+
+# Exibição do relógio sincronizado enquanto usuário informa o ajuste
+def exibir_relogio():
+    while ajuste_final is None:
+        agora = get_ntp_brasilia()
+        print(f"\r⏰ Horário NTP de Brasília: {agora.strftime('%H:%M:%S')}", end="", flush=True)
+        time.sleep(1)
+
+# Inicia o relógio em uma thread paralela
+thread_relogio = threading.Thread(target=exibir_relogio)
+thread_relogio.start()
+
+# Pergunta ao usuário
+while True:
+    try:
+        print("\nDigite quantos segundos o sistema está adiantado (+) ou atrasado (-) em relação ao real:")
+        segundos = int(input("↕ Atraso ou adiantamento (em segundos): "))
+        ajuste_final = segundos
+        break
+    except ValueError:
+        print("❌ Entrada inválida. Digite um número inteiro.")
+
+# Aplica ajuste
+atraso = timedelta(seconds=ajuste_final)
+
+# Caminho absoluto mesmo no PyInstaller
 def caminho_absoluto(rel_path):
     if hasattr(sys, '_MEIPASS'):
         return os.path.join(sys._MEIPASS, rel_path)
@@ -14,16 +55,19 @@ def caminho_absoluto(rel_path):
 desktop = os.path.join(os.path.expanduser("~"), "Desktop")
 log_path = os.path.join(desktop, "log_cliques.txt")
 
-
-# Função para esperar até horário definido
+# Função que espera até horário alvo usando NTP + ajuste
 def esperar_ate_horario(hora, minuto):
     while True:
-        agora = datetime.datetime.now()
-        if agora.hour == hora and agora.minute == minuto:
+        agora_brasilia = get_ntp_brasilia() + atraso
+        print(f"\r⏳ Aguardando: {agora_brasilia.strftime('%H:%M:%S')}", end="", flush=True)
+
+        if agora_brasilia.hour == hora and agora_brasilia.minute == minuto:
+            print()  # nova linha
             break
+        time.sleep(1)
 
 # Seletor de restaurante
-opcoes = ['Fuji', 'Zendai', 'Columbia']
+opcoes = ['Fuji', 'Zendai', 'Columbia', 'Campolim']
 print("Selecione o restaurante para pesquisa:")
 for i, nome in enumerate(opcoes, 1):
     print(f"{i}. {nome}")
@@ -41,56 +85,52 @@ while True:
 
 print(f"Restaurante escolhido: {termo_de_busca}")
 
-start_time = time.time()
-
-# Espera até o horário definido
-print("Esperando dar 17h...")
-esperar_ate_horario(17, 00)  # Altere para o horário desejado
+# Espera até 17h (ajustável)
+print("Esperando dar 17h (horário de Brasília)...")
+esperar_ate_horario(17, 0)
 
 print("É 17h! Executando ações...")
+time.sleep(3)
 
-
-# ⏱️ Início da contagem do tempo
-time.sleep(5)
-# Automação de busca (Ctrl+F)
+# Executa automação
 pyautogui.press('f5')
-time.sleep(1)
-
+time.sleep(0.5)
 pyautogui.hotkey('ctrl', 'f')
-time.sleep(0.2)
-
 pyautogui.write(termo_de_busca, interval=0.05)
-time.sleep(0.2)
-
 pyautogui.press('enter')
-time.sleep(0.2)
 pyautogui.press("esc")
-time.sleep(0.2)
 pyautogui.press('enter')
 
-# Mapeamento de cliques por opção
-time.sleep(0.2)
+# Navegação por cliques
+pyautogui.press("tab")
+pyautogui.press("tab")
+pyautogui.press("tab")
+pyautogui.press("tab")
+pyautogui.press("tab")
+
 cliques_por_opcao = {
-    "1": ["tab", "space", "tab", "tab", "space", "tab", "tab", "space", "tab", "tab", "space", "enter"],
-    "2": ["tab", "tab", "space", "tab", "tab", "tab", "space", "enter"],
-    "3": ["tab", "space", "tab", "space", "tab", "space", "enter"]
+    "1": ["tab", "space", "tab", "tab", "space", "tab", "tab", "space"],
+    "2": ["tab", "tab", "space", "tab"],
+    "3": ["tab", "space", "tab", "space"],
+    "4": ["tab", "space", "tab", "space", "tab", "space"]
 }
 
-# Determinar opção com base no termo de busca
 opcao = str(opcoes.index(termo_de_busca) + 1)
 cliques = cliques_por_opcao.get(opcao, [])
 
 print(f"Iniciando sequência de teclas da opção {opcao}...")
-
 for i, tecla in enumerate(cliques, 1):
     pyautogui.press(tecla)
     print(f"✔ Tecla {i} pressionada: {tecla.upper()}")
-    time.sleep(0.1)
 
-# ⏱️ Fim da contagem e exibição
-tempo_total = time.time() - start_time
-minutos = int(tempo_total // 60)
-segundos = int(tempo_total % 60)
+pyautogui.hotkey('ctrl', 'f')
+pyautogui.write("Marque", interval=0.05)
+pyautogui.press('enter')
+pyautogui.press("esc")
+pyautogui.press('enter')
 
-mensagem_tempo = f"Tempo de execução: {minutos} min {segundos} seg."
-print(mensagem_tempo)
+pyautogui.hotkey('ctrl', 'f')
+pyautogui.write("Solicitar", interval=0.05)
+pyautogui.press('enter')
+pyautogui.press("esc")
+pyautogui.press('enter')
