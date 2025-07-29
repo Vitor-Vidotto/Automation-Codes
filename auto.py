@@ -111,7 +111,7 @@ time.sleep(0.1)
 pyautogui.press("esc")
 time.sleep(0.1)
 pyautogui.press('enter')
-time.sleep(0.1)
+time.sleep(0.5)
 
 # Navegação por cliques
 pyautogui.press("tab")
@@ -121,12 +121,12 @@ pyautogui.press("tab")
 pyautogui.press("tab")
 
 cliques_por_opcao = {
-    "1": ["tab", "space", "tab", "tab", "space", "tab", "tab", "space","down","down","down"],
+    "1": ["tab", "space", "tab", "tab", "space", "tab", "tab", "space"],
     "2": ["tab", "tab", "space", "tab"],
-    "3": ["tab", "space", "tab", "space","down"],
-    "4": ["tab", "space", "tab", "space", "tab", "space","down","down"]
+    "3": ["tab", "space", "tab", "space"],
+    "4": ["tab", "space", "tab", "space", "tab", "space"]
 }
-
+ 
 opcao = str(opcoes.index(termo_de_busca) + 1)
 cliques = cliques_por_opcao.get(opcao, [])
 
@@ -134,7 +134,13 @@ print(f"Iniciando sequência de teclas da opção {opcao}...")
 for i, tecla in enumerate(cliques, 1):
     pyautogui.press(tecla)
     print(f"✔ Tecla {i} pressionada: {tecla.upper()}")
+    time.sleep(0.1)
+
+pyautogui.press("down")
+pyautogui.press("down")
+pyautogui.press("down")
+pyautogui.press("down")
 
 clicar_na_imagem(caminho_absoluto("imagens/verificar.png"))
-time.sleep(1)
+time.sleep(0.5)
 clicar_na_imagem(caminho_absoluto("imagens/confirmar.png"))
