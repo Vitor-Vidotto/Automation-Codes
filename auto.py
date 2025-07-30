@@ -111,18 +111,28 @@ time.sleep(0.1)
 pyautogui.press("esc")
 time.sleep(0.1)
 pyautogui.press('enter')
-time.sleep(0.5)
+time.sleep(0.8)
 
 # Navegação por cliques
 pyautogui.press("tab")
+time.sleep(0.1)
+
 pyautogui.press("tab")
+time.sleep(0.1)
+
 pyautogui.press("tab")
+time.sleep(0.1)
+
 pyautogui.press("tab")
+time.sleep(0.1)
+
 pyautogui.press("tab")
+time.sleep(0.1)
 
 cliques_por_opcao = {
     "1": ["tab", "space", "tab", "tab", "space", "tab", "tab", "space"],
     "2": ["tab", "tab", "space", "tab"],
+    
     "3": ["tab", "space", "tab", "space"],
     "4": ["tab", "space", "tab", "space", "tab", "space"]
 }
