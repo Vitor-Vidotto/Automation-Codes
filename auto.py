@@ -7,6 +7,7 @@ import threading
 import ntplib
 from datetime import timezone, timedelta
 
+
 # Função para obter horário de Brasília via NTP
 def get_ntp_brasilia():
     try:
@@ -59,9 +60,8 @@ def clicar_na_imagem(nome_arquivo, confidence=0.8):
 
 # Caminho absoluto mesmo no PyInstaller
 def caminho_absoluto(rel_path):
-    if hasattr(sys, '_MEIPASS'):
-        return os.path.join(sys._MEIPASS, rel_path)
-    return os.path.join(os.path.abspath("."), rel_path)
+    base_path = getattr(sys, '_MEIPASS', os.path.dirname(os.path.abspath(__file__)))
+    return os.path.join(base_path, rel_path)
 
 # Função que espera até horário alvo usando NTP + ajuste
 def esperar_ate_horario(hora, minuto):
