@@ -75,7 +75,7 @@ def esperar_ate_horario(hora, minuto):
         time.sleep(1)
 
 # Seletor de restaurante
-opcoes = ['Fuji', 'Zendai', 'Columbia', 'Campolim']
+opcoes = ['Fuji', 'Zendai', 'Koiumi', 'Campolim', 'Real - Campolim']
 print("Selecione o restaurante para pesquisa:")
 for i, nome in enumerate(opcoes, 1):
     print(f"{i}. {nome}")
@@ -95,14 +95,13 @@ print(f"Restaurante escolhido: {termo_de_busca}")
 
 # Espera até 17h (ajustável)
 print("Esperando dar 17h (horário de Brasília)...")
-esperar_ate_horario(17, 0)
 
 print("É 17h! Executando ações...")
 time.sleep(3)
 
 # Executa automação
 pyautogui.press('f5')
-time.sleep(1)
+time.sleep(1.5)
 pyautogui.hotkey('ctrl', 'f')
 time.sleep(0.1)
 pyautogui.write(termo_de_busca, interval=0.05)
@@ -113,28 +112,14 @@ time.sleep(0.1)
 pyautogui.press('enter')
 time.sleep(0.8)
 
-# Navegação por cliques
-pyautogui.press("tab")
-time.sleep(0.1)
-
-pyautogui.press("tab")
-time.sleep(0.1)
-
-pyautogui.press("tab")
-time.sleep(0.1)
-
-pyautogui.press("tab")
-time.sleep(0.1)
-
-pyautogui.press("tab")
-time.sleep(0.1)
 
 cliques_por_opcao = {
     "1": ["tab", "space", "tab", "tab", "space", "tab", "tab", "space"],
     "2": ["tab", "tab", "space", "tab"],
     
     "3": ["tab", "space", "tab", "space"],
-    "4": ["tab", "space", "tab", "space", "tab", "space"]
+    "4": ["tab", "space", "tab", "space", "tab", "space"],
+    "5": ["tab", "space", "tab", "space", "tab", "tab", "space"]
 }
  
 opcao = str(opcoes.index(termo_de_busca) + 1)
@@ -153,4 +138,4 @@ pyautogui.press("down")
 
 clicar_na_imagem(caminho_absoluto("imagens/verificar.png"))
 time.sleep(0.5)
-clicar_na_imagem(caminho_absoluto("imagens/confirmar.png"))
+pyautogui.press("enter")
