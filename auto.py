@@ -95,7 +95,7 @@ print(f"Restaurante escolhido: {termo_de_busca}")
 
 # Espera até 17h (ajustável)
 print("Esperando dar 17h (horário de Brasília)...")
-
+esperar_ate_horario(17, 0)
 print("É 17h! Executando ações...")
 time.sleep(3)
 
